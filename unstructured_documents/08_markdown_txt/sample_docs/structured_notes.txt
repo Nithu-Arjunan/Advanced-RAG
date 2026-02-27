@@ -1,0 +1,76 @@
+Topic: Machine Learning Fundamentals
+
+Machine learning is a subset of artificial intelligence that enables systems to learn from data without being explicitly programmed. It has become one of the most important areas of computer science.
+
+Key Concepts:
+- Supervised learning uses labeled training data to learn a mapping function
+- Unsupervised learning finds patterns in data without labeled examples
+- Reinforcement learning trains agents through reward and punishment signals
+- Semi-supervised learning combines small labeled datasets with large unlabeled ones
+
+Common Algorithms:
+- Linear regression for continuous value prediction
+- Logistic regression for binary classification
+- Decision trees for interpretable classification and regression
+- Random forests for ensemble-based prediction
+- Support vector machines for high-dimensional classification
+- K-means clustering for unsupervised grouping
+- Neural networks for complex pattern recognition
+
+Topic: Data Preprocessing
+
+Data preprocessing is a critical step that can significantly impact model performance. Raw data often contains noise, missing values, and inconsistencies that must be addressed before training.
+
+Steps in Data Preprocessing:
+- Data cleaning: handle missing values, remove duplicates, fix errors
+- Feature scaling: normalize or standardize numeric features
+- Encoding: convert categorical variables to numeric representations
+- Feature selection: identify the most relevant features for the model
+- Train-test split: divide data into training and evaluation sets
+
+Common Pitfalls:
+- Data leakage from using test data information during training
+- Not handling class imbalance in classification problems
+- Applying scaling after the train-test split incorrectly
+- Ignoring outliers that can skew model performance
+
+Topic: Model Evaluation
+
+Evaluating model performance correctly is essential for building reliable systems. Different metrics are appropriate for different types of problems.
+
+Classification Metrics:
+- Accuracy: overall proportion of correct predictions
+- Precision: proportion of positive predictions that are correct
+- Recall: proportion of actual positives that are identified
+- F1 Score: harmonic mean of precision and recall
+- ROC-AUC: area under the receiver operating characteristic curve
+
+Regression Metrics:
+- Mean Absolute Error (MAE): average absolute difference between predicted and actual values
+- Mean Squared Error (MSE): average squared difference between predicted and actual values
+- Root Mean Squared Error (RMSE): square root of MSE, in original units
+- R-squared: proportion of variance explained by the model
+
+Validation Techniques:
+- Hold-out validation: simple train-test split
+- K-fold cross-validation: rotate through K train-test splits
+- Stratified K-fold: preserves class distribution in each fold
+- Time series split: respects temporal ordering of data
+
+Topic: Deployment Considerations
+
+Moving a model from development to production requires careful planning and infrastructure. Many models that perform well in testing fail to deliver value in production.
+
+Key Challenges:
+- Model serving: choosing between batch and real-time inference
+- Monitoring: detecting model drift and performance degradation
+- Scaling: handling increased load without sacrificing latency
+- Versioning: managing multiple model versions simultaneously
+- Retraining: establishing pipelines for regular model updates
+
+Best Practices:
+- Start with a simple baseline model before building complex ones
+- Automate the training and deployment pipeline early
+- Monitor model predictions and retrain on a regular schedule
+- Document model assumptions, limitations, and expected behavior
+- Plan for graceful degradation when the model is unavailable

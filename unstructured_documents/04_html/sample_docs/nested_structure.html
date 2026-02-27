@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Documentation - User Management</title>
+</head>
+<body>
+    <div class="doc-wrapper">
+        <div class="sidebar">
+            <h3>Navigation</h3>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#authentication">Authentication</a></li>
+                <li><a href="#endpoints">Endpoints</a></li>
+                <li><a href="#errors">Error Handling</a></li>
+            </ul>
+        </div>
+        <div class="content">
+            <h1 id="overview">User Management API</h1>
+            <p>The User Management API allows you to create, read, update, and delete
+            user accounts in your application.</p>
+
+            <div class="section" id="authentication">
+                <h2>Authentication</h2>
+                <p>All API requests require a valid API key passed in the header:</p>
+                <pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
+                <p>API keys can be generated from the dashboard settings page.</p>
+
+                <div class="warning">
+                    <strong>Important:</strong> Never expose your API key in client-side code.
+                    Always make API calls from your server.
+                </div>
+            </div>
+
+            <div class="section" id="endpoints">
+                <h2>Endpoints</h2>
+
+                <div class="endpoint">
+                    <h3>Create User</h3>
+                    <p><code>POST /api/v1/users</code></p>
+                    <p>Creates a new user account.</p>
+
+                    <h4>Request Body</h4>
+                    <pre><code>{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "admin"
+}</code></pre>
+
+                    <h4>Response</h4>
+                    <pre><code>{
+    "id": "usr_123",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "admin",
+    "created_at": "2025-01-15T10:30:00Z"
+}</code></pre>
+                </div>
+
+                <div class="endpoint">
+                    <h3>List Users</h3>
+                    <p><code>GET /api/v1/users</code></p>
+                    <p>Returns a paginated list of users.</p>
+
+                    <h4>Query Parameters</h4>
+                    <table border="1">
+                        <thead>
+                            <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>page</td><td>integer</td><td>1</td><td>Page number</td></tr>
+                            <tr><td>per_page</td><td>integer</td><td>20</td><td>Items per page (max 100)</td></tr>
+                            <tr><td>role</td><td>string</td><td>-</td><td>Filter by role</td></tr>
+                            <tr><td>search</td><td>string</td><td>-</td><td>Search by name or email</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Update User</h3>
+                    <p><code>PUT /api/v1/users/{id}</code></p>
+                    <p>Updates an existing user account. Only provided fields will be updated.</p>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Delete User</h3>
+                    <p><code>DELETE /api/v1/users/{id}</code></p>
+                    <p>Permanently deletes a user account. This action cannot be undone.</p>
+                </div>
+            </div>
+
+            <div class="section" id="errors">
+                <h2>Error Handling</h2>
+                <p>The API uses standard HTTP status codes:</p>
+                <table border="1">
+                    <thead>
+                        <tr><th>Code</th><th>Meaning</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>200</td><td>OK</td><td>Request succeeded</td></tr>
+                        <tr><td>201</td><td>Created</td><td>Resource created successfully</td></tr>
+                        <tr><td>400</td><td>Bad Request</td><td>Invalid request body</td></tr>
+                        <tr><td>401</td><td>Unauthorized</td><td>Missing or invalid API key</td></tr>
+                        <tr><td>404</td><td>Not Found</td><td>Resource not found</td></tr>
+                        <tr><td>429</td><td>Too Many Requests</td><td>Rate limit exceeded</td></tr>
+                        <tr><td>500</td><td>Server Error</td><td>Internal server error</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>API Version 1.0 | Last updated: January 2025</p>
+    </footer>
+</body>
+</html>
