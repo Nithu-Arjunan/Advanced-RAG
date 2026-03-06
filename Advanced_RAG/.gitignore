@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Environment / local config
+.env
+.env.*
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Frontend
+UI/node_modules/
+UI/dist/
+UI/.vite/
+UI/*.tsbuildinfo
+
+# Runtime data / caches
+data/cache/
+data/uploads/
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary Office files
+~$*.docx
+
+Architecture_latest.docx
+Architecture.docx
+Front end prompt.docx
+RAG_demo.mp4
+
+Project_Architecture_Detailed_files
+
+
