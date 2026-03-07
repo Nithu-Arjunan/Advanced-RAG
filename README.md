@@ -20,6 +20,19 @@ The definitive single-repository guide for parsing and preparing documents for R
 | Markdown / Text | Chunking strategies, AST parsing, semantic chunking | mistune |
 | EPUB | ebooklib extraction, full text pipeline | ebooklib |
 
+### [Advanced Methods](advanced_methods/)
+
+Production-grade parsing libraries with AI-powered extraction:
+
+| Library | Type | Key Strength | License |
+|---------|------|-------------|---------|
+| [Docling](advanced_methods/01_docling/) (IBM) | Local | Multi-format, built-in chunking, TableFormer | MIT |
+| [Unstructured.io](advanced_methods/02_unstructured_io/) | Local/Cloud | Widest format support, typed elements | Apache 2.0 |
+| [Azure Doc Intelligence](advanced_methods/03_azure_doc_intelligence/) | Cloud | Highest accuracy, prebuilt models (invoice, receipt, ID) | Proprietary |
+| [LlamaParse](advanced_methods/04_llamaparse/) | Cloud | GenAI-native parsing, LlamaIndex integration | Proprietary |
+| [Marker](advanced_methods/05_marker/) | Local | Best PDF-to-Markdown, equation support | GPL |
+| [MegaParse](advanced_methods/06_megaparse/) (Quivr) | Local/API | Simplest API, vision mode with GPT-4o/Claude | Apache 2.0 |
+
 ## Getting Started
 
 ```bash
@@ -28,6 +41,13 @@ uv sync
 
 # Install optional OCR dependencies
 uv sync --extra ocr
+
+# Install advanced parsing libraries (pick what you need)
+uv sync --extra docling        # IBM Docling
+uv sync --extra unstructured   # Unstructured.io
+uv sync --extra azure          # Azure Document Intelligence
+uv sync --extra llamaparse     # LlamaParse
+uv sync --extra marker         # Marker PDF-to-Markdown
 
 # Generate all sample documents
 for f in unstructured_documents/*/sample_docs/generate_samples.py; do

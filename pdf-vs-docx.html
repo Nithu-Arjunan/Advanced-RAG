@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF vs DOCX - How Machines Perceive Documents</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f8fafc; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+const docxXML = `<?xml version="1.0" encoding="UTF-8"?>
+<w:document>
+  <w:body>
+    <w:p w:rsidR="00A77427">
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+      </w:pPr>
+      <w:r>
+        <w:t>Quarterly Report</w:t>
+      </w:r>
+    </w:p>
+    <w:p w:rsidR="00A77428">
+      <w:r>
+        <w:rPr>
+          <w:b/>
+        </w:rPr>
+        <w:t>Revenue:</w:t>
+      </w:r>
+      <w:r>
+        <w:t> $4.2M in Q3</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tr>
+        <w:tc><w:t>Product</w:t></w:tc>
+        <w:tc><w:t>Sales</w:t></w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc><w:t>Widget A</w:t></w:tc>
+        <w:tc><w:t>$2.1M</w:t></w:tc>
+      </w:tr>
+    </w:tbl>
+  </w:body>
+</w:document>`;
+
+const pdfStream = `%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R
+  /MediaBox [0 0 612 792]
+  /Contents 4 0 R
+  /Resources << /Font << /F1 5 0 R >> >>
+>> endobj
+5 0 obj << /Type /Font /Subtype /Type1
+  /BaseFont /Helvetica-Bold >> endobj
+
+4 0 obj << /Length 312 >>
+stream
+BT
+  /F1 24 Tf
+  72 720 Td
+  (Quarterly Report) Tj
+ET
+BT
+  /F1 12 Tf
+  72 680 Td
+  (Revenue:) Tj
+  8 0 Td
+  /F1 12 Tf
+  ( $4.2M in Q3) Tj
+ET
+72 640 m 300 640 l S
+72 640 m 72 600 l S
+BT 76 622 Td (Product) Tj ET
+BT 200 622 Td (Sales) Tj ET
+BT 76 602 Td (Widget A) Tj ET
+BT 200 602 Td ($2.1M) Tj ET
+endstream endobj
+%%EOF`;
+
+const highlights = {
+  docx: {
+    structure: { label: "Semantic Structure", color: "#0369a1", ranges: ["Heading1", "pStyle"] },
+    formatting: { label: "Formatting Tags", color: "#b45309", ranges: ["<w:b/>"] },
+    content: { label: "Extractable Text", color: "#047857", ranges: ["Quarterly Report", "Revenue:", "$4.2M in Q3", "Product", "Sales", "Widget A", "$2.1M"] },
+    table: { label: "Table Structure", color: "#7c3aed", ranges: ["w:tbl", "w:tr", "w:tc"] },
+  },
+  pdf: {
+    coordinates: { label: "Position Commands", color: "#dc2626", ranges: ["72 720 Td", "72 680 Td", "8 0 Td", "76 622 Td", "200 622 Td", "76 602 Td", "200 602 Td"] },
+    font: { label: "Font Instructions", color: "#b45309", ranges: ["/F1 24 Tf", "/F1 12 Tf"] },
+    drawing: { label: "Line Drawing", color: "#7c3aed", ranges: ["72 640 m 300 640 l S", "72 640 m 72 600 l S"] },
+    content: { label: "Text Placement", color: "#047857", ranges: ["(Quarterly Report) Tj", "(Revenue:) Tj", "( $4.2M in Q3) Tj", "(Product) Tj", "(Sales) Tj", "(Widget A) Tj", "($2.1M) Tj"] },
+  },
+};
+
+const challengeData = [
+  {
+    id: "extract_heading",
+    title: "Extract the document heading",
+    docx: { difficulty: "Easy", explanation: 'The XML contains an explicit tag: <w:pStyle w:val="Heading1"/>. The machine simply searches for this tag and reads the text inside the corresponding <w:t> element. No ambiguity \u2014 the format tells you exactly what is a heading.', steps: 2 },
+    pdf: { difficulty: "Hard", explanation: 'There is no concept of a "heading" in PDF. The machine must scan every text-drawing command (BT/ET blocks), compare font sizes, and guess that the largest font (24pt) is probably the heading. If two text blocks use the same large font, the machine has no way to know which is the actual title.', steps: 5 },
+  },
+  {
+    id: "find_bold",
+    title: "Identify bold text",
+    docx: { difficulty: "Easy", explanation: 'Bold formatting is stored as a simple tag: <w:b/>. Search the XML tree for this tag, navigate to the parent text run, and extract the content. This works 100% of the time, regardless of the font or style used.', steps: 2 },
+    pdf: { difficulty: "Hard", explanation: 'PDF has no "bold" flag. The machine must look at which font resource is used (e.g., /F1), find the font descriptor object, and check if the BaseFont name contains the word "Bold". If the font is named something like "CustomFont-Semibold" or uses a numeric weight, detection can fail entirely.', steps: 5 },
+  },
+  {
+    id: "extract_table",
+    title: "Extract a table into structured data",
+    docx: { difficulty: "Easy", explanation: 'Tables are first-class objects in DOCX. The machine finds the <w:tbl> element, iterates through <w:tr> (table row) children, then through <w:tc> (table cell) children within each row. The result is a clean 2D array that maps directly to a spreadsheet or database table.', steps: 3 },
+    pdf: { difficulty: "Very Hard", explanation: 'PDF has no concept of tables. What looks like a table to a human is actually just lines drawn at specific coordinates and text placed nearby. The machine must: (1) detect all horizontal and vertical line segments, (2) find their intersections to reconstruct a grid, (3) determine which text blocks fall inside which grid cells, and (4) assemble rows and columns. If a table uses shading instead of lines, this approach fails completely.', steps: 8 },
+  },
+  {
+    id: "reorder",
+    title: "Determine correct reading order",
+    docx: { difficulty: "Trivial", explanation: 'XML elements appear in the exact order they should be read. Paragraph 1 is first in the file, paragraph 2 is second, and so on. The machine simply iterates from top to bottom \u2014 reading order is guaranteed by the format specification.', steps: 1 },
+    pdf: { difficulty: "Hard", explanation: 'Text-drawing commands can appear in any order within the PDF stream \u2014 the last paragraph in the document might be the first command in the file. The machine must sort all text blocks by their Y-coordinate (vertical position) and then by X-coordinate (horizontal position). Multi-column layouts introduce serious ambiguity: is this text block in the left column or the right column?', steps: 6 },
+  },
+];
+
+function highlightCode(code, activeHighlights, highlightMap) {
+  if (!activeHighlights.length) return React.createElement("span", null, code);
+  let segments = [{ text: code, color: null }];
+  activeHighlights.forEach((key) => {
+    const { color, ranges } = highlightMap[key];
+    let newSegments = [];
+    segments.forEach((seg) => {
+      if (seg.color) { newSegments.push(seg); return; }
+      let remaining = seg.text;
+      let parts = [];
+      ranges.forEach((r) => {
+        let idx = remaining.indexOf(r);
+        while (idx !== -1) {
+          if (idx > 0) parts.push({ text: remaining.slice(0, idx), color: null });
+          parts.push({ text: remaining.slice(idx, idx + r.length), color });
+          remaining = remaining.slice(idx + r.length);
+          idx = remaining.indexOf(r);
+        }
+      });
+      if (remaining) parts.push({ text: remaining, color: null });
+      if (parts.length) newSegments.push(...parts);
+      else newSegments.push(seg);
+    });
+    segments = newSegments;
+  });
+  return segments.map((s, i) => (
+    <span key={i} style={s.color ? { backgroundColor: s.color + "15", color: s.color, borderBottom: `2px solid ${s.color}`, fontWeight: 600, padding: "1px 3px", borderRadius: 2 } : {}}>
+      {s.text}
+    </span>
+  ));
+}
+
+const DifficultyBadge = ({ level }) => {
+  const colors = { Trivial: "#047857", Easy: "#047857", Hard: "#b45309", "Very Hard": "#dc2626" };
+  const bgs = { Trivial: "#ecfdf5", Easy: "#ecfdf5", Hard: "#fffbeb", "Very Hard": "#fef2f2" };
+  return (
+    <span style={{ background: bgs[level], color: colors[level], padding: "4px 14px", borderRadius: 999, fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", border: `1px solid ${colors[level]}20` }}>
+      {level}
+    </span>
+  );
+};
+
+const Callout = ({ type, title, children }) => {
+  const styles = {
+    info: { bg: "#f0f7ff", border: "#93c5fd", accent: "#0c4a6e", text: "#1e3a5f" },
+    contrast: { bg: "#f8fafc", border: "#cbd5e1", accent: "#334155", text: "#475569" },
+    warn: { bg: "#fffbeb", border: "#fcd34d", accent: "#92400e", text: "#78350f" },
+  };
+  const s = styles[type] || styles.info;
+  return (
+    <div style={{ padding: "18px 22px", background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, marginBottom: 22, marginTop: 22 }}>
+      {title && <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 14, color: s.accent, marginBottom: 6 }}>{title}</div>}
+      <div style={{ fontSize: 14, color: s.text, lineHeight: 1.75, fontFamily: "'DM Sans', sans-serif" }}>{children}</div>
+    </div>
+  );
+};
+
+function App() {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [docxHighlights, setDocxHighlights] = useState([]);
+  const [pdfHighlights, setPdfHighlights] = useState([]);
+  const [expandedChallenge, setExpandedChallenge] = useState(null);
+
+  const toggleHighlight = (type, key) => {
+    const [set, setFn] = type === "docx" ? [docxHighlights, setDocxHighlights] : [pdfHighlights, setPdfHighlights];
+    setFn(set.includes(key) ? set.filter((k) => k !== key) : [...set, key]);
+  };
+
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "internals", label: "File Internals" },
+    { id: "extraction", label: "Extraction Comparison" },
+    { id: "pipeline", label: "Processing Pipeline" },
+  ];
+
+  return (
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#f8fafc", color: "#1a202c", minHeight: "100vh" }}>
+      {/* Header */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "36px 40px 28px" }}>
+          <div style={{ fontSize: 12, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.16em", fontWeight: 700, marginBottom: 10 }}>Document Processing for AI Systems</div>
+          <h1 style={{ fontSize: 34, fontWeight: 800, margin: 0, color: "#0f172a", letterSpacing: "-0.035em", lineHeight: 1.15 }}>
+            How Machines Perceive Documents
+          </h1>
+          <p style={{ color: "#64748b", fontSize: 16, margin: "10px 0 0", lineHeight: 1.6, maxWidth: 720 }}>
+            A Word file and a PDF can look identical on screen, but to a machine they are fundamentally different data structures. Understanding this difference is critical for building reliable AI document processing systems.
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0, zIndex: 10 }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", display: "flex", padding: "0 40px" }}>
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              padding: "15px 24px", background: "none", border: "none",
+              color: activeTab === t.id ? "#0f172a" : "#94a3b8",
+              fontSize: 14, fontWeight: 700, cursor: "pointer",
+              borderBottom: activeTab === t.id ? "2.5px solid #0f172a" : "2.5px solid transparent",
+              transition: "all 0.15s", fontFamily: "inherit",
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 40px 60px" }}>
+
+        {/* ===== OVERVIEW ===== */}
+        {activeTab === "overview" && (
+          <div>
+            <div style={{ maxWidth: 760 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 16, letterSpacing: "-0.02em" }}>The Fundamental Distinction</h2>
+              <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8, marginBottom: 20 }}>
+                When a human opens a document, they see formatted text — headings, paragraphs, bold words, tables. But behind what you see on screen, the two most common document formats store this information in completely different ways. This has enormous consequences for any system that needs to programmatically read, search, or understand documents.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
+              <div style={{ background: "#fff", border: "1.5px solid #bfdbfe", borderRadius: 12, padding: 28, borderTop: "4px solid #0369a1" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>DOCX — Word Document</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 14, letterSpacing: "-0.02em" }}>A Structured Data Format</div>
+                <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.75, margin: "0 0 16px" }}>
+                  A .docx file is a <strong>ZIP archive</strong> containing XML files. The primary file, <code>word/document.xml</code>, stores every piece of content as semantically tagged data.
+                </p>
+                <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.75, margin: 0 }}>
+                  Headings are labeled as headings. Bold text has a bold tag. Tables have explicit rows and cells. The machine receives <strong>meaning</strong> alongside content.
+                </p>
+                <div style={{ marginTop: 18, padding: 14, background: "#eff6ff", borderRadius: 8, fontSize: 13, color: "#1e40af", lineHeight: 1.65 }}>
+                  <strong>Analogy:</strong> Like receiving a well-organized spreadsheet with column headers, data types, and relationships clearly defined.
+                </div>
+              </div>
+
+              <div style={{ background: "#fff", border: "1.5px solid #fecaca", borderRadius: 12, padding: 28, borderTop: "4px solid #dc2626" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>PDF — Portable Document Format</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 14, letterSpacing: "-0.02em" }}>A Visual Rendering Format</div>
+                <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.75, margin: "0 0 16px" }}>
+                  A PDF is a set of <strong>drawing instructions</strong>. It tells a renderer: "place this character at coordinate (72, 720), draw a line from point A to point B." It describes what the page <em>looks like</em>, not what it <em>means</em>.
+                </p>
+                <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.75, margin: 0 }}>
+                  There are no heading tags, no bold flags, no table objects. The machine receives <strong>coordinates and glyphs</strong> — nothing more.
+                </p>
+                <div style={{ marginTop: 18, padding: 14, background: "#fef2f2", borderRadius: 8, fontSize: 13, color: "#991b1b", lineHeight: 1.65 }}>
+                  <strong>Analogy:</strong> Like receiving a photograph of a spreadsheet. The data is visually there, but the machine must figure out where the columns and rows are.
+                </div>
+              </div>
+            </div>
+
+            {/* Quick comparison table */}
+            <div style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    <th style={{ padding: "14px 20px", textAlign: "left", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0", width: "30%" }}>Property</th>
+                    <th style={{ padding: "14px 20px", textAlign: "left", fontWeight: 700, color: "#0369a1", borderBottom: "1px solid #e2e8f0", width: "35%" }}>DOCX</th>
+                    <th style={{ padding: "14px 20px", textAlign: "left", fontWeight: 700, color: "#dc2626", borderBottom: "1px solid #e2e8f0", width: "35%" }}>PDF</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Internal format", "XML (human-readable markup)", "Binary stream with drawing operators"],
+                    ["File structure", "ZIP archive of XML files", "Cross-referenced object graph"],
+                    ["How text is stored", "Paragraphs with semantic tags", "Characters placed at x,y coordinates"],
+                    ["Bold / Italic", "Explicit formatting tags", "Different font resource selected"],
+                    ["Headings", "Labeled with style names (Heading1, etc.)", "No concept — just larger font size"],
+                    ["Tables", "Structured rows and cells (<w:tbl>)", "Lines drawn + text positioned nearby"],
+                    ["Reading order", "Guaranteed by document order", "Must be reconstructed from coordinates"],
+                    ["Machine extraction", "Deterministic, fast, reliable", "Heuristic-based, slow, error-prone"],
+                  ].map(([prop, docx, pdf], i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#fafbfc" }}>
+                      <td style={{ padding: "12px 20px", color: "#334155", fontWeight: 600, borderBottom: "1px solid #f1f5f9" }}>{prop}</td>
+                      <td style={{ padding: "12px 20px", color: "#1e40af", borderBottom: "1px solid #f1f5f9" }}>{docx}</td>
+                      <td style={{ padding: "12px 20px", color: "#991b1b", borderBottom: "1px solid #f1f5f9" }}>{pdf}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Callout type="warn" title="Why does this matter for AI?">
+              Every AI document pipeline — RAG systems, automated data extraction, document classification — starts by converting files into text. The quality of that initial text extraction determines the ceiling for everything downstream. Poor extraction from PDFs leads to bad chunks, bad embeddings, and bad retrieval results. Understanding the source format is the first step to building reliable systems.
+            </Callout>
+          </div>
+        )}
+
+        {/* ===== FILE INTERNALS ===== */}
+        {activeTab === "internals" && (
+          <div>
+            <div style={{ maxWidth: 760, marginBottom: 24 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 12, letterSpacing: "-0.02em" }}>What the Machine Actually Sees</h2>
+              <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8 }}>
+                Below is the <strong>actual internal representation</strong> of the same simple document in both formats. The document contains a heading ("Quarterly Report"), a line of text with bold formatting ("Revenue: $4.2M in Q3"), and a small two-column table. Use the highlight buttons to see how each format encodes structure, formatting, and content.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              {/* DOCX */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 8, background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#0369a1", border: "1px solid #93c5fd" }}>.docx</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>Word Document</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>Contents of word/document.xml inside the ZIP</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                  {Object.entries(highlights.docx).map(([key, val]) => (
+                    <button key={key} onClick={() => toggleHighlight("docx", key)} style={{
+                      padding: "6px 14px", borderRadius: 6, border: `1.5px solid ${docxHighlights.includes(key) ? val.color : "#d1d5db"}`,
+                      fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      background: docxHighlights.includes(key) ? val.color + "10" : "#fff",
+                      color: docxHighlights.includes(key) ? val.color : "#6b7280",
+                      transition: "all 0.15s", fontFamily: "inherit",
+                    }}>
+                      {val.label}
+                    </button>
+                  ))}
+                </div>
+                <pre style={{ fontFamily: "'IBM Plex Mono', monospace", background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: 18, fontSize: 12, lineHeight: 1.75, overflowX: "auto", margin: 0, minHeight: 380, whiteSpace: "pre-wrap", color: "#334155" }}>
+                  {highlightCode(docxXML, docxHighlights, highlights.docx)}
+                </pre>
+              </div>
+
+              {/* PDF */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 8, background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#dc2626", border: "1px solid #fca5a5" }}>.pdf</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>PDF File</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>Content stream with drawing operators</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                  {Object.entries(highlights.pdf).map(([key, val]) => (
+                    <button key={key} onClick={() => toggleHighlight("pdf", key)} style={{
+                      padding: "6px 14px", borderRadius: 6, border: `1.5px solid ${pdfHighlights.includes(key) ? val.color : "#d1d5db"}`,
+                      fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      background: pdfHighlights.includes(key) ? val.color + "10" : "#fff",
+                      color: pdfHighlights.includes(key) ? val.color : "#6b7280",
+                      transition: "all 0.15s", fontFamily: "inherit",
+                    }}>
+                      {val.label}
+                    </button>
+                  ))}
+                </div>
+                <pre style={{ fontFamily: "'IBM Plex Mono', monospace", background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: 18, fontSize: 12, lineHeight: 1.75, overflowX: "auto", margin: 0, minHeight: 380, whiteSpace: "pre-wrap", color: "#334155" }}>
+                  {highlightCode(pdfStream, pdfHighlights, highlights.pdf)}
+                </pre>
+              </div>
+            </div>
+
+            {/* Annotations */}
+            <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ padding: 18, background: "#fff", border: "1.5px solid #bfdbfe", borderRadius: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#0369a1", marginBottom: 10 }}>Key observations — DOCX</div>
+                <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.75 }}>
+                  <p style={{ margin: "0 0 8px" }}><strong>Semantic tags everywhere.</strong> The <code>w:pStyle val="Heading1"</code> tag explicitly marks the heading. The <code>w:b</code> tag marks bold. The <code>w:tbl</code> / <code>w:tr</code> / <code>w:tc</code> tags define table, row, and cell.</p>
+                  <p style={{ margin: 0 }}><strong>Document order is reading order.</strong> Elements appear in the XML in the same sequence they appear on the page.</p>
+                </div>
+              </div>
+              <div style={{ padding: 18, background: "#fff", border: "1.5px solid #fecaca", borderRadius: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginBottom: 10 }}>Key observations — PDF</div>
+                <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.75 }}>
+                  <p style={{ margin: "0 0 8px" }}><strong>Everything is coordinates.</strong> Text is placed with <code>Td</code> (move to position) and <code>Tj</code> (draw text). The "table" is just lines (<code>m</code> = move, <code>l</code> = line, <code>S</code> = stroke) and positioned text.</p>
+                  <p style={{ margin: 0 }}><strong>No semantic information at all.</strong> The machine cannot distinguish a heading from body text without analyzing font size heuristically.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== EXTRACTION COMPARISON ===== */}
+        {activeTab === "extraction" && (
+          <div>
+            <div style={{ maxWidth: 760, marginBottom: 24 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 12, letterSpacing: "-0.02em" }}>Common Extraction Tasks Compared</h2>
+              <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8 }}>
+                These four tasks represent what most AI document processing systems need to do. For each task, notice the contrast: DOCX extraction is a deterministic tree traversal that always succeeds. PDF extraction is a multi-step heuristic process that can fail silently — returning wrong data without raising an error. Click each task to see the full comparison.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {challengeData.map((c, idx) => (
+                <div key={c.id} style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, overflow: "hidden", cursor: "pointer", transition: "all 0.2s", boxShadow: expandedChallenge === c.id ? "0 4px 16px rgba(0,0,0,0.06)" : "none" }}
+                  onClick={() => setExpandedChallenge(expandedChallenge === c.id ? null : c.id)}>
+                  <div style={{ padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <span style={{ width: 28, height: 28, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#64748b", flexShrink: 0 }}>{idx + 1}</span>
+                      <span style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>{c.title}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>DOCX</span>
+                      <DifficultyBadge level={c.docx.difficulty} />
+                      <span style={{ width: 1, height: 20, background: "#e2e8f0", margin: "0 6px" }} />
+                      <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>PDF</span>
+                      <DifficultyBadge level={c.pdf.difficulty} />
+                      <span style={{ color: "#94a3b8", fontSize: 18, marginLeft: 8, transition: "transform 0.2s", transform: expandedChallenge === c.id ? "rotate(180deg)" : "rotate(0)" }}>&#9662;</span>
+                    </div>
+                  </div>
+                  {expandedChallenge === c.id && (
+                    <div style={{ padding: "0 22px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                      <div style={{ padding: 18, background: "#f0f9ff", borderRadius: 8, border: "1px solid #bae6fd" }}>
+                        <div style={{ fontSize: 12, color: "#0369a1", fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>DOCX — {c.docx.steps} step{c.docx.steps > 1 ? "s" : ""}</div>
+                        <div style={{ fontSize: 14, color: "#1e3a5f", lineHeight: 1.75 }}>{c.docx.explanation}</div>
+                      </div>
+                      <div style={{ padding: 18, background: "#fff5f5", borderRadius: 8, border: "1px solid #fed7d7" }}>
+                        <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>PDF — {c.pdf.steps} step{c.pdf.steps > 1 ? "s" : ""}</div>
+                        <div style={{ fontSize: 14, color: "#7f1d1d", lineHeight: 1.75 }}>{c.pdf.explanation}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <Callout type="warn" title="The silent failure problem">
+              The most dangerous aspect of PDF extraction is that failures are <strong>silent</strong>. When a table is incorrectly reconstructed, the system doesn't throw an error — it returns plausible-looking but wrong data. In an AI pipeline, this corrupted data propagates through embeddings, retrieval, and generation without any signal that something went wrong. This is why production systems need validation layers and human-in-the-loop checks specifically for PDF-sourced content.
+            </Callout>
+          </div>
+        )}
+
+        {/* ===== PIPELINE ===== */}
+        {activeTab === "pipeline" && (
+          <div>
+            <div style={{ maxWidth: 760, marginBottom: 24 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 12, letterSpacing: "-0.02em" }}>End-to-End Processing Pipeline</h2>
+              <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8 }}>
+                When documents enter an AI system — whether for RAG, classification, or data extraction — they go through a processing pipeline that converts raw files into usable text. Below is the typical pipeline for each format, including approximate timing for a single-page document.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+              {/* DOCX Pipeline */}
+              <div style={{ background: "#fff", border: "1.5px solid #bfdbfe", borderRadius: 12, padding: 28, borderTop: "4px solid #0369a1" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0369a1", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>DOCX Pipeline</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 22 }}>Deterministic extraction via XML parsing</div>
+                {[
+                  { step: "1", title: "Unzip archive", desc: "Extract word/document.xml from the ZIP container", time: "~1ms" },
+                  { step: "2", title: "Parse XML tree", desc: "Standard XML parser produces a navigable DOM", time: "~5ms" },
+                  { step: "3", title: "Traverse document", desc: "Walk paragraphs, runs, and tables in order", time: "~2ms" },
+                  { step: "4", title: "Extract content + metadata", desc: "Headings, formatting, table cells — all explicitly tagged", time: "~1ms" },
+                  { step: "5", title: "Semantic chunking", desc: "Split by heading structure for embedding generation", time: "~10ms" },
+                ].map((s) => (
+                  <div key={s.step} style={{ display: "flex", gap: 14, marginBottom: 18 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#dbeafe", color: "#0369a1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, border: "1px solid #93c5fd" }}>{s.step}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span>{s.title}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#0369a1", fontFamily: "'IBM Plex Mono', monospace" }}>{s.time}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "#475569", marginTop: 3, lineHeight: 1.55 }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ padding: 16, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 8 }}>
+                  <div style={{ fontSize: 15, color: "#047857", fontWeight: 800 }}>Total: ~19ms per page</div>
+                  <div style={{ fontSize: 13, color: "#065f46", marginTop: 4 }}>Deterministic output. No heuristics. Preserves all document structure.</div>
+                </div>
+              </div>
+
+              {/* PDF Pipeline */}
+              <div style={{ background: "#fff", border: "1.5px solid #fecaca", borderRadius: 12, padding: 28, borderTop: "4px solid #dc2626" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>PDF Pipeline</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 22 }}>Heuristic reconstruction from drawing commands</div>
+                {[
+                  { step: "1", title: "Parse binary objects", desc: "Decode cross-reference table and stream objects", time: "~10ms" },
+                  { step: "2", title: "Detect text layer", desc: "Check if text exists or if pages are scanned images", time: "~5ms" },
+                  { step: "3", title: "OCR (if scanned)", desc: "Run optical character recognition on page images", time: "2-5s/pg" },
+                  { step: "4", title: "Reconstruct reading order", desc: "Sort text blocks by position — columns are ambiguous", time: "~50ms" },
+                  { step: "5", title: "Detect table boundaries", desc: "Find line segments, build grids, map text to cells", time: "~200ms" },
+                  { step: "6", title: "Infer document structure", desc: "Guess heading levels from font size and weight", time: "~20ms" },
+                  { step: "7", title: "Fixed-window chunking", desc: "No structure to guide splits — use character count", time: "~15ms" },
+                ].map((s) => (
+                  <div key={s.step} style={{ display: "flex", gap: 14, marginBottom: 18 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#fee2e2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0, border: "1px solid #fca5a5" }}>{s.step}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span>{s.title}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#dc2626", fontFamily: "'IBM Plex Mono', monospace" }}>{s.time}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "#475569", marginTop: 3, lineHeight: 1.55 }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ padding: 16, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8 }}>
+                  <div style={{ fontSize: 15, color: "#dc2626", fontWeight: 800 }}>Total: 300ms - 5+ seconds per page</div>
+                  <div style={{ fontSize: 13, color: "#991b1b", marginTop: 4 }}>Non-deterministic. Results vary by extraction tool. Scanned PDFs are slowest.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Impact on RAG */}
+            <div style={{ marginTop: 28, background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 12, padding: 28 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 16, letterSpacing: "-0.01em" }}>Impact on RAG System Quality</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#0369a1", marginBottom: 10 }}>DOCX-sourced chunks</div>
+                  <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.75 }}>
+                    Heading-aware chunking means each chunk contains a complete section with its heading as context. Embeddings capture the actual topic of each section. Retrieval accuracy is high because chunk boundaries align with semantic boundaries in the document.
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginBottom: 10 }}>PDF-sourced chunks</div>
+                  <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.75 }}>
+                    Fixed-window chunking splits text at arbitrary character positions, often mid-sentence or mid-paragraph. Table data may be scrambled. Headers and footers get mixed into body text. Embeddings are noisier, and retrieval accuracy degrades — especially for structured content like financial reports or technical specifications.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Callout type="info" title="Modern approaches to PDF understanding">
+              Layout-aware AI models like LayoutLM (Microsoft), Donut (Naver), and Nougat (Meta) use computer vision alongside language modeling to understand PDF pages as images. They can detect tables, headings, and reading order with much higher accuracy than rule-based tools. However, they are significantly slower, require GPU resources, and still don't match the reliability of structured format extraction. In production, many teams use a hybrid approach: structured extraction for DOCX/HTML, and layout models as a fallback for PDFs.
+            </Callout>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
