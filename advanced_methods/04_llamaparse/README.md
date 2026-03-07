@@ -74,7 +74,7 @@ export LLAMA_CLOUD_API_KEY="llx-your-key-here"
 ### llama-parse package (legacy, stable)
 
 ```bash
-pip install llama-parse
+uv pip install llama-parse
 ```
 
 ```python
@@ -99,7 +99,7 @@ for doc in documents:
 ### llama-cloud package (newer API)
 
 ```bash
-pip install llama-cloud>=1.0
+uv pip install llama-cloud>=1.0
 ```
 
 ```python

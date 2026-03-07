@@ -12,7 +12,7 @@ Key chunkers:
 
 These chunkers preserve context by including heading hierarchies in each chunk.
 
-pip install docling docling-core
+uv pip install docling docling-core
 """
 import sys
 from pathlib import Path

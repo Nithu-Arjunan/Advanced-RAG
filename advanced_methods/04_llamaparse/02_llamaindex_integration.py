@@ -4,7 +4,7 @@ LlamaParse + LlamaIndex RAG Pipeline
 LlamaParse integrates natively with LlamaIndex to create
 complete RAG pipelines: parse -> chunk -> embed -> index -> query.
 
-pip install llama-parse llama-index
+uv pip install llama-parse llama-index
 """
 import os
 import sys
@@ -31,7 +31,7 @@ def llamaindex_rag_pipeline():
         from llama_parse import LlamaParse
         from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
     except ImportError:
-        print("Install: pip install llama-parse llama-index")
+        print("Install: uv pip install llama-parse llama-index")
         _show_pipeline_code()
         return
 

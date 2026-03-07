@@ -10,7 +10,7 @@ LlamaParse offers different parsing tiers with varying capabilities:
 Higher tiers use more advanced AI models for better accuracy on
 complex documents but consume more credits.
 
-pip install llama-parse
+uv pip install llama-parse
 """
 import os
 import sys
@@ -57,7 +57,7 @@ Free tier: 1000 pages/day across all tiers.
     try:
         from llama_parse import LlamaParse
     except ImportError:
-        print("Install: pip install llama-parse")
+        print("Install: uv pip install llama-parse")
         return
 
     pdf_path = str(SAMPLES_DIR / "01_pdf" / "sample_docs" / "tables.pdf")

@@ -8,7 +8,7 @@ Marker supports four output formats, each suited to different use cases:
 3. HTML     - Rendered HTML with images, tables, equations
 4. Chunks   - Flattened list of top-level blocks (optimized for RAG)
 
-pip install marker-pdf
+uv pip install marker-pdf
 """
 import sys
 import json
@@ -69,7 +69,7 @@ Metadata (all formats):
             print(text[:300] + "..." if len(text) > 300 else text)
 
     except ImportError:
-        print("\nInstall marker-pdf to see live output: pip install marker-pdf")
+        print("\nInstall marker-pdf to see live output: uv pip install marker-pdf")
 
 
 if __name__ == "__main__":

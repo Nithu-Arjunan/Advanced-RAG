@@ -10,7 +10,7 @@ Unstructured offers three strategies for PDF processing:
 3. "ocr_only" - Forces OCR on the entire document. For scanned PDFs
                 where text layer is missing or unreliable.
 
-pip install "unstructured[pdf]"
+uv pip install "unstructured[pdf]"
 """
 import sys
 from pathlib import Path
@@ -51,7 +51,7 @@ def compare_strategies():
                 print(f"  [{type(el).__name__}] {str(el)[:120]}")
         except Exception as e:
             print(f"  Error: {e}")
-            print(f"  (hi_res requires: pip install \"unstructured[pdf]\" and model downloads)")
+            print(f"  (hi_res requires: uv pip install \"unstructured[pdf]\" and model downloads)")
 
 
 def hi_res_with_options():
@@ -86,7 +86,7 @@ def hi_res_with_options():
     except Exception as e:
         print(f"Error: {e}")
         print("hi_res requires layout detection models. Install with:")
-        print('  pip install "unstructured[pdf]"')
+        print('  uv pip install "unstructured[pdf]"')
 
 
 if __name__ == "__main__":

@@ -70,7 +70,7 @@ client = DocumentIntelligenceClient(
 Install the SDK:
 
 ```bash
-pip install azure-ai-documentintelligence
+uv pip install azure-ai-documentintelligence
 ```
 
 ### Key Classes
@@ -239,7 +239,7 @@ The free tier (500 pages/month) is sufficient for development and testing.
 | Invoice/Receipt fields | Yes (prebuilt models) | No | No | No |
 | Cost | $0.001-0.01/page | Free | Free (open-source) | Free |
 | Offline capable | No | Yes | Yes | Yes |
-| Setup complexity | Azure account required | pip install | pip install | pip install |
+| Setup complexity | Azure account required | uv pip install | uv pip install | uv pip install |
 | Scalability | Cloud-native | Single machine | Single machine | Single machine |
 
 ---

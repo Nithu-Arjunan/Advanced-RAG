@@ -53,22 +53,22 @@ Mixed format batch   -> Unstructured.io or Docling
 
 ```bash
 # Docling (IBM, local, MIT)
-pip install docling
+uv pip install docling
 
 # Unstructured.io (local, Apache 2.0)
-pip install "unstructured[all-docs]"
+uv pip install "unstructured[all-docs]"
 
 # Azure Document Intelligence (cloud, proprietary)
-pip install azure-ai-documentintelligence
+uv pip install azure-ai-documentintelligence
 
 # LlamaParse (cloud, proprietary)
-pip install llama-parse
+uv pip install llama-parse
 
 # Marker (local, GPL)
-pip install marker-pdf
+uv pip install marker-pdf
 
 # MegaParse (local, Apache 2.0)
-pip install megaparse
+uv pip install megaparse
 ```
 
 ### Parse a PDF with Each Library
@@ -169,6 +169,20 @@ Document -> [Upload] -> [AI Analysis] -> [Structured Result] -> Output
              LlamaParse: REST API     LlamaParse: Multimodal AI
              MegaParse Vision: LLM    MegaParse: GPT-4o/Claude
 ```
+
+## API Key Requirements
+
+| Library | API Key Needed? | Environment Variables | Free Tier |
+|---------|:-:|---|---|
+| Docling | No | None | Fully local, free |
+| Unstructured.io | No | None | Fully local, free (OSS version) |
+| Azure Doc Intelligence | **Yes** | `AZURE_DOC_INTELLIGENCE_ENDPOINT`, `AZURE_DOC_INTELLIGENCE_KEY` | 500 pages/month free |
+| LlamaParse | **Yes** | `LLAMA_CLOUD_API_KEY` | 1,000 pages/day free |
+| Marker | No | None | Fully local, free |
+| MegaParse (standard) | No | None | Fully local, free |
+| MegaParse Vision | **Yes** | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` | No (pay-per-use) |
+
+> **Note**: All scripts gracefully handle missing API keys — they print example code and documentation instead of crashing. You can run any script to see usage examples even without the required keys.
 
 ## Performance Considerations
 

@@ -8,9 +8,9 @@ Docling integrates with popular RAG frameworks:
 These integrations let you use Docling's parsing directly in your
 RAG pipeline with minimal code.
 
-pip install docling
-pip install llama-index-readers-docling  # for LlamaIndex
-pip install langchain-docling            # for LangChain
+uv pip install docling
+uv pip install llama-index-readers-docling  # for LlamaIndex
+uv pip install langchain-docling            # for LangChain
 """
 import sys
 from pathlib import Path
@@ -23,7 +23,7 @@ def llamaindex_integration():
     try:
         from llama_index.readers.docling import DoclingReader
     except ImportError:
-        print("Install: pip install llama-index-readers-docling")
+        print("Install: uv pip install llama-index-readers-docling")
         print("\nExample code (not runnable without install):")
         print("""
 from llama_index.readers.docling import DoclingReader
@@ -58,7 +58,7 @@ def langchain_integration():
     try:
         from langchain_docling import DoclingLoader
     except ImportError:
-        print("Install: pip install langchain-docling")
+        print("Install: uv pip install langchain-docling")
         print("\nExample code (not runnable without install):")
         print("""
 from langchain_docling import DoclingLoader

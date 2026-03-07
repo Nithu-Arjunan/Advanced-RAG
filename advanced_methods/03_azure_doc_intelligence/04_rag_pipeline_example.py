@@ -12,7 +12,7 @@ to prepare documents for a RAG system:
 
 This script works with or without Azure credentials (shows example output).
 
-pip install azure-ai-documentintelligence
+uv pip install azure-ai-documentintelligence
 """
 import os
 import sys

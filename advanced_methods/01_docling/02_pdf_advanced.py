@@ -11,9 +11,9 @@ Key classes:
 - OcrOptions subclasses: EasyOcrOptions, TesseractOcrOptions, etc.
 - PipelineOptions: Master configuration for the processing pipeline
 
-pip install docling
-pip install "docling[tesserocr]"  # for Tesseract OCR
-pip install "docling[easyocr]"    # for EasyOCR
+uv pip install docling
+uv pip install "docling[tesserocr]"  # for Tesseract OCR
+uv pip install "docling[easyocr]"    # for EasyOCR
 """
 import sys
 from pathlib import Path

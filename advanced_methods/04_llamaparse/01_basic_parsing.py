@@ -15,9 +15,9 @@ Key features:
 Requires: LlamaCloud API key (free tier: 1000 pages/day)
 Get API key at: https://cloud.llamaindex.ai/
 
-pip install llama-parse
+uv pip install llama-parse
 # OR newer:
-pip install llama-cloud>=1.0
+uv pip install llama-cloud>=1.0
 """
 import os
 import sys
@@ -45,7 +45,7 @@ def basic_parse_pdf():
     try:
         from llama_parse import LlamaParse
     except ImportError:
-        print("Install: pip install llama-parse")
+        print("Install: uv pip install llama-parse")
         return
 
     pdf_path = str(SAMPLES_DIR / "01_pdf" / "sample_docs" / "tables.pdf")
@@ -81,7 +81,7 @@ def parse_with_options():
     try:
         from llama_parse import LlamaParse
     except ImportError:
-        print("Install: pip install llama-parse")
+        print("Install: uv pip install llama-parse")
         return
 
     pdf_path = str(SAMPLES_DIR / "01_pdf" / "sample_docs" / "mixed_content.pdf")
@@ -119,7 +119,7 @@ def parse_multiple_formats():
     try:
         from llama_parse import LlamaParse
     except ImportError:
-        print("Install: pip install llama-parse")
+        print("Install: uv pip install llama-parse")
         return
 
     parser = LlamaParse(api_key=api_key, result_type="markdown")

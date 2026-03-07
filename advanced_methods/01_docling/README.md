@@ -50,11 +50,11 @@ Docling supports multiple OCR engines for scanned documents and images:
 
 | Engine | Install | Platform | Notes |
 |--------|---------|----------|-------|
-| EasyOCR | `pip install "docling[easyocr]"` | All | Default; GPU-accelerated; 80+ languages |
-| Tesseract | `pip install "docling[tesserocr]"` | All | Classic OCR engine; fast on CPU |
+| EasyOCR | `uv pip install "docling[easyocr]"` | All | Default; GPU-accelerated; 80+ languages |
+| Tesseract | `uv pip install "docling[tesserocr]"` | All | Classic OCR engine; fast on CPU |
 | Tesseract CLI | Built-in (requires system Tesseract) | All | Uses command-line `tesseract` binary |
-| OcrMac | `pip install "docling[ocrmac]"` | macOS only | Apple Vision framework; fast on Mac |
-| RapidOCR | `pip install "docling[rapidocr]"` | All | Lightweight; no GPU required |
+| OcrMac | `uv pip install "docling[ocrmac]"` | macOS only | Apple Vision framework; fast on Mac |
+| RapidOCR | `uv pip install "docling[rapidocr]"` | All | Lightweight; no GPU required |
 
 ### Unified DoclingDocument Representation
 All input formats are parsed into a single `DoclingDocument` model. This Pydantic-based representation includes:
@@ -74,20 +74,20 @@ Docling provides structure-aware chunkers designed specifically for RAG:
 
 ```bash
 # Basic installation
-pip install docling
+uv pip install docling
 
 # With specific OCR engines
-pip install "docling[easyocr]"
-pip install "docling[tesserocr]"
-pip install "docling[ocrmac]"       # macOS only
-pip install "docling[rapidocr]"
+uv pip install "docling[easyocr]"
+uv pip install "docling[tesserocr]"
+uv pip install "docling[ocrmac]"       # macOS only
+uv pip install "docling[rapidocr]"
 
 # For chunking
-pip install docling-core
+uv pip install docling-core
 
 # Framework integrations
-pip install llama-index-readers-docling   # LlamaIndex
-pip install langchain-docling             # LangChain
+uv pip install llama-index-readers-docling   # LlamaIndex
+uv pip install langchain-docling             # LangChain
 ```
 
 **Requirements:** Python 3.10 or later. Note that Docling pulls in PyTorch and several deep learning model dependencies, which can be large (several GB).

@@ -14,7 +14,7 @@ Export options:
 - convert_to_dataframe(): Pandas DataFrame
 - elements_to_dicts(): List of dictionaries
 
-pip install "unstructured[all-docs]"
+uv pip install "unstructured[all-docs]"
 """
 import sys
 from pathlib import Path

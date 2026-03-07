@@ -14,7 +14,7 @@ Azure offers specialized prebuilt models for common document types:
 
 Each model returns structured fields specific to the document type.
 
-pip install azure-ai-documentintelligence
+uv pip install azure-ai-documentintelligence
 """
 import os
 import sys
@@ -25,8 +25,14 @@ SAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "unstructured_docu
 
 def prebuilt_read():
     """Use prebuilt-read for pure text extraction (OCR optimized)."""
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.documentintelligence import DocumentIntelligenceClient
+    try:
+        from azure.core.credentials import AzureKeyCredential
+        from azure.ai.documentintelligence import DocumentIntelligenceClient
+    except ImportError:
+        print("Install: uv pip install azure-ai-documentintelligence")
+        _show_setup_message("PREBUILT-READ MODEL")
+        _show_read_example()
+        return
 
     endpoint = os.environ.get("AZURE_DOC_INTELLIGENCE_ENDPOINT")
     key = os.environ.get("AZURE_DOC_INTELLIGENCE_KEY")

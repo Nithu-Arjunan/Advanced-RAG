@@ -5,7 +5,7 @@ Azure excels at extracting structured tables and detecting figures.
 Tables are returned with full row/column structure, spanning cells,
 and optional HTML output. Figures include bounding regions and captions.
 
-pip install azure-ai-documentintelligence
+uv pip install azure-ai-documentintelligence
 """
 import os
 import sys
@@ -16,8 +16,13 @@ SAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "unstructured_docu
 
 def table_extraction():
     """Extract tables with full structure from PDF."""
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.documentintelligence import DocumentIntelligenceClient
+    try:
+        from azure.core.credentials import AzureKeyCredential
+        from azure.ai.documentintelligence import DocumentIntelligenceClient
+    except ImportError:
+        print("Install: uv pip install azure-ai-documentintelligence")
+        _show_table_example()
+        return
 
     endpoint = os.environ.get("AZURE_DOC_INTELLIGENCE_ENDPOINT")
     key = os.environ.get("AZURE_DOC_INTELLIGENCE_KEY")

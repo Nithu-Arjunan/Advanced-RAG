@@ -13,9 +13,9 @@ This approach excels at:
 
 Requires: OpenAI or Anthropic API key for the multimodal model.
 
-pip install megaparse langchain-openai
+uv pip install megaparse langchain-openai
 # OR
-pip install megaparse langchain-anthropic
+uv pip install megaparse langchain-anthropic
 """
 import os
 import sys
@@ -40,7 +40,7 @@ def vision_parse_openai():
         from megaparse.parser.megaparse_vision import MegaParseVision
         from langchain_openai import ChatOpenAI
     except ImportError:
-        print("Install: pip install megaparse langchain-openai")
+        print("Install: uv pip install megaparse langchain-openai")
         return
 
     pdf_path = str(SAMPLES_DIR / "01_pdf" / "sample_docs" / "tables.pdf")

@@ -8,7 +8,7 @@ Markdown, JSON, HTML, or plain text.
 Key concept: DocumentConverter accepts file paths or URLs and returns a
 ConversionResult containing a DoclingDocument with full structure preserved.
 
-pip install docling
+uv pip install docling
 """
 import sys
 from pathlib import Path

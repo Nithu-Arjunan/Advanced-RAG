@@ -15,7 +15,7 @@ partitioners for each format with type-specific parameters:
   partition_image() - Images (PNG, JPG, TIFF)
   partition_csv()   - CSV files
 
-pip install "unstructured[all-docs]"
+uv pip install "unstructured[all-docs]"
 """
 import sys
 from pathlib import Path

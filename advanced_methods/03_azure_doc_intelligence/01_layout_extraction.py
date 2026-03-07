@@ -14,7 +14,7 @@ The "prebuilt-layout" model extracts:
 - Barcodes and formulas
 
 Requires: Azure subscription + Document Intelligence resource
-pip install azure-ai-documentintelligence
+uv pip install azure-ai-documentintelligence
 
 Free tier: 500 pages/month
 """
@@ -27,9 +27,14 @@ SAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "unstructured_docu
 
 def layout_extraction():
     """Extract layout from a PDF using prebuilt-layout model."""
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.documentintelligence import DocumentIntelligenceClient
-    from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+    try:
+        from azure.core.credentials import AzureKeyCredential
+        from azure.ai.documentintelligence import DocumentIntelligenceClient
+        from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+    except ImportError:
+        print("Install: uv pip install azure-ai-documentintelligence")
+        _show_example_code()
+        return
 
     endpoint = os.environ.get("AZURE_DOC_INTELLIGENCE_ENDPOINT")
     key = os.environ.get("AZURE_DOC_INTELLIGENCE_KEY")
@@ -120,8 +125,12 @@ for para in result.paragraphs:
 
 def markdown_output():
     """Get document content as Markdown (Azure's built-in conversion)."""
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.documentintelligence import DocumentIntelligenceClient
+    try:
+        from azure.core.credentials import AzureKeyCredential
+        from azure.ai.documentintelligence import DocumentIntelligenceClient
+    except ImportError:
+        print("Install: uv pip install azure-ai-documentintelligence")
+        return
 
     endpoint = os.environ.get("AZURE_DOC_INTELLIGENCE_ENDPOINT")
     key = os.environ.get("AZURE_DOC_INTELLIGENCE_KEY")

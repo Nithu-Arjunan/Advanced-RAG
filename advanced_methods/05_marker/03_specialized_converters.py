@@ -7,7 +7,7 @@ Besides the default PdfConverter, Marker provides specialized converters:
 2. OCRConverter   - Force full OCR processing
 3. ExtractionConverter - Structured data extraction with Pydantic schemas
 
-pip install marker-pdf
+uv pip install marker-pdf
 """
 import sys
 from pathlib import Path
@@ -25,7 +25,7 @@ def table_converter_demo():
         print("=" * 60)
         print("MARKER - TABLE CONVERTER")
         print("=" * 60)
-        print("\nInstall: pip install marker-pdf")
+        print("\nInstall: uv pip install marker-pdf")
         _show_table_example()
         return
 
@@ -51,7 +51,7 @@ def ocr_converter_demo():
         print("=" * 60)
         print("MARKER - OCR CONVERTER")
         print("=" * 60)
-        print("\nInstall: pip install marker-pdf")
+        print("\nInstall: uv pip install marker-pdf")
         print("""
 from marker.converters.ocr import OCRConverter
 from marker.models import create_model_dict

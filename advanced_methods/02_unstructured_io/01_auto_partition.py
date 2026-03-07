@@ -7,7 +7,7 @@ detects the file type and routes to the correct parser.
 It returns a list of Element objects (Title, NarrativeText, Table,
 ListItem, Image, etc.) that represent the document's structure.
 
-pip install "unstructured[all-docs]"
+uv pip install "unstructured[all-docs]"
 """
 import sys
 from pathlib import Path

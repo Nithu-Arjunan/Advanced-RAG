@@ -14,7 +14,7 @@ Supported formats: PDF, DOCX, PPTX, XLSX, CSV, TXT
 Output: Markdown text (optimized for LLM consumption)
 
 Requirements: Python >= 3.11, poppler, tesseract-ocr
-pip install megaparse
+uv pip install megaparse
 """
 import os
 import sys
@@ -31,7 +31,7 @@ def basic_parse():
         print("=" * 60)
         print("MEGAPARSE - BASIC DOCUMENT PARSING")
         print("=" * 60)
-        print("\nInstall: pip install megaparse")
+        print("\nInstall: uv pip install megaparse")
         print("System deps: poppler, tesseract-ocr, libmagic")
         print("  macOS: brew install poppler tesseract libmagic")
         print("  Ubuntu: apt install poppler-utils tesseract-ocr libmagic-dev")
@@ -56,7 +56,7 @@ def parse_multiple_formats():
     try:
         from megaparse import MegaParse
     except ImportError:
-        print("Install: pip install megaparse")
+        print("Install: uv pip install megaparse")
         print("\nMegaParse supports: PDF, DOCX, PPTX, XLSX, CSV, TXT")
         print("All use the same simple API: megaparse.load(filepath)")
         return

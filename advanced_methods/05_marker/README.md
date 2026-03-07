@@ -18,7 +18,7 @@ Marker is an open-source document conversion tool created by [Vik Paruchuri](htt
 | Web        | HTML                             |
 | Images     | PNG, JPG/JPEG, TIFF, BMP, WEBP   |
 
-Note: DOCX, PPTX, and XLSX support requires `pip install marker-pdf[full]`.
+Note: DOCX, PPTX, and XLSX support requires `uv pip install marker-pdf[full]`.
 
 ### Output Formats
 
@@ -45,10 +45,10 @@ Models are downloaded automatically on first use (~1.5GB total).
 
 ```bash
 # Basic installation (PDF and image support)
-pip install marker-pdf
+uv pip install marker-pdf
 
 # Full installation (adds DOCX, PPTX, XLSX support)
-pip install marker-pdf[full]
+uv pip install marker-pdf[full]
 ```
 
 **Requirements:**

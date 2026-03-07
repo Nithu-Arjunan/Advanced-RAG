@@ -11,7 +11,7 @@ documents for a RAG pipeline:
 MegaParse's Markdown output is already optimized for LLMs,
 making it an efficient first step in any RAG pipeline.
 
-pip install megaparse
+uv pip install megaparse
 """
 import os
 import sys
@@ -122,7 +122,7 @@ def _get_parsed_content():
         return megaparse.load(pdf_path)
     except ImportError:
         print("[MegaParse not installed - using sample Markdown for demo]")
-        print("Install: pip install megaparse\n")
+        print("Install: uv pip install megaparse\n")
 
         # Use existing Markdown file as fallback
         md_path = SAMPLES_DIR / "08_markdown_txt" / "sample_docs" / "technical_doc.md"

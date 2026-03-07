@@ -12,8 +12,8 @@ It uses a pipeline of AI models:
 Supports: PDF, images, PPTX, DOCX, XLSX, HTML, EPUB
 Output: Markdown, JSON, HTML, chunks
 
-pip install marker-pdf
-pip install marker-pdf[full]  # for DOCX, PPTX, XLSX support
+uv pip install marker-pdf
+uv pip install marker-pdf[full]  # for DOCX, PPTX, XLSX support
 """
 import sys
 from pathlib import Path
@@ -31,7 +31,7 @@ def basic_pdf_to_markdown():
         print("=" * 60)
         print("MARKER - PDF TO MARKDOWN")
         print("=" * 60)
-        print("\nInstall: pip install marker-pdf")
+        print("\nInstall: uv pip install marker-pdf")
         print("Requires PyTorch (CPU or GPU)")
         _show_basic_example()
         return
@@ -66,7 +66,7 @@ def convert_with_config():
         from marker.config.parser import ConfigParser
         from marker.output import text_from_rendered
     except ImportError:
-        print("Install: pip install marker-pdf")
+        print("Install: uv pip install marker-pdf")
         _show_config_example()
         return
 

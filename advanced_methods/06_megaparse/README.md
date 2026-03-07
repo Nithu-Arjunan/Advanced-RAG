@@ -46,7 +46,7 @@
 
 ```bash
 # Basic installation
-pip install megaparse
+uv pip install megaparse
 
 # System dependencies required:
 # macOS:
@@ -56,8 +56,8 @@ brew install poppler tesseract libmagic
 sudo apt install poppler-utils tesseract-ocr libmagic-dev
 
 # For Vision parsing:
-pip install megaparse langchain-openai    # for GPT-4o
-pip install megaparse langchain-anthropic  # for Claude
+uv pip install megaparse langchain-openai    # for GPT-4o
+uv pip install megaparse langchain-anthropic  # for Claude
 ```
 
 ## Quick Start

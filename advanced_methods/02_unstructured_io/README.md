@@ -68,22 +68,22 @@ elements = partition_pdf(filename="report.pdf", strategy="hi_res")
 
 **Basic (text-based formats only):**
 ```bash
-pip install unstructured
+uv pip install unstructured
 ```
 
 **Per-format extras:**
 ```bash
-pip install "unstructured[pdf]"       # PDF support
-pip install "unstructured[docx]"      # Word documents
-pip install "unstructured[pptx]"      # PowerPoint
-pip install "unstructured[xlsx]"      # Excel
-pip install "unstructured[epub]"      # EPUB ebooks
-pip install "unstructured[md]"        # Markdown
+uv pip install "unstructured[pdf]"       # PDF support
+uv pip install "unstructured[docx]"      # Word documents
+uv pip install "unstructured[pptx]"      # PowerPoint
+uv pip install "unstructured[xlsx]"      # Excel
+uv pip install "unstructured[epub]"      # EPUB ebooks
+uv pip install "unstructured[md]"        # Markdown
 ```
 
 **All document types:**
 ```bash
-pip install "unstructured[all-docs]"
+uv pip install "unstructured[all-docs]"
 ```
 
 **System dependencies (for hi_res PDF and image OCR):**
@@ -166,7 +166,7 @@ documents = reader.load_data(file="report.pdf")
 ## Hosted API vs Open Source
 
 Unstructured offers both:
-- **Open source library** (`pip install unstructured`) -- runs locally, full control, no API keys
+- **Open source library** (`uv pip install unstructured`) -- runs locally, full control, no API keys
 - **Hosted API / Unstructured Platform** -- managed service at `api.unstructured.io`, higher throughput, no local dependency management, requires API key
 
 The API accepts the same parameters (strategy, chunking, etc.) and returns the same Element structure.
