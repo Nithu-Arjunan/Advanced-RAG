@@ -1,21 +1,22 @@
-import argparse
+"""End-to-end retrieval and ingestion pipeline with selectable chunking strategy."""
+
 import os
 from typing import Any, Dict, List, Literal, Optional, Tuple
 import logging
-from .config import TOP_K, RERANK_TOP_N,PINECONE_NAMESPACE
-from .ingestion import extract_text
+
+from .config import PINECONE_NAMESPACE, RERANK_TOP_N, TOP_K
 from .base import Chunk
+from .embedding import _get_or_create_index, is_file_ingested, upsert_chunks
+from .generation import generate_answer
+from .ingestion import extract_text
+from .ingestion import mark_document_ingested
 from .chunking.parent_child import parent_child_chunking, retrieve_with_parent_context
 from .chunking.sentence_window import sentence_window_chunking, build_sentence_window_records
-from .embedding import _get_or_create_index, is_file_ingested, upsert_chunks
-from .ingestion import mark_document_ingested
 from .reranking import rerank
-from .generation import generate_answer
+
+ALLOWED_CHUNKING_STRATEGIES = ("parent_child", "sentence_window")
 
 logging.basicConfig(level=logging.INFO)
-
-
-"""End-to-end pipeline with selectable chunking strategy."""
 
 def _logical_source_name(source: str) -> str:
     """Normalize '<uuid>_<filename>' to '<filename>' for safe comparisons."""
@@ -31,6 +32,7 @@ def _logical_source_name(source: str) -> str:
 
 
 def _source_matches(hit_source: str, expected_source: str) -> bool:
+    """Check whether hit source and expected source refer to the same logical file."""
     if not hit_source or not expected_source:
         return False
     if hit_source == expected_source:
@@ -39,6 +41,7 @@ def _source_matches(hit_source: str, expected_source: str) -> bool:
 
 
 def _build_parent_child_records(child_chunks: List[Chunk], source_name: str) -> List[Dict[str, Any]]:
+    """Build vector-store records from child chunks for parent-child strategy."""
     records: List[Dict[str, Any]] = []
     for child in child_chunks:
         records.append(
@@ -56,12 +59,16 @@ def _build_parent_child_records(child_chunks: List[Chunk], source_name: str) -> 
     return records
 
 
+
+# This function is used to remove duplicate parent chunks that can arise in parent-child strategy 
+# when multiple child chunks from the same parent are retrieved.
 def _resolve_unique_parent_chunks(
     reranked_child_hits: List[Dict[str, Any]],
     child_chunks: List[Chunk],
     parent_chunks: List[Chunk],
     source_name: str,
 ) -> List[Dict[str, Any]]:
+    """Resolve reranked child hits into de-duplicated parent chunks."""
     unique_parent_chunks: List[Dict[str, Any]] = []
     seen_parent_ids = set()
 
@@ -111,6 +118,7 @@ def _resolve_sentence_window_chunks(
     reranked_hits: List[Dict[str, Any]],
     source_name: str,
 ) -> List[Dict[str, Any]]:
+    """Normalize reranked sentence-window hits into generation-ready chunks."""
     sentence_chunks: List[Dict[str, Any]] = []
     seen_ids = set()
 
@@ -151,6 +159,7 @@ def run_pipeline(
     batch_size: int = 100,
     namespace: Optional[str] = None,
 ) -> Tuple[List[Dict[str, Any]], str, int]:
+    """Run retrieval + generation for an already-ingested document."""
     source_name = os.path.basename(file_path)
     parts = source_name.split("_", 1)
     if len(parts) == 2 and len(parts[0]) == 32:
@@ -159,19 +168,21 @@ def run_pipeline(
             source_name = parts[1]
         except ValueError:
             pass
+
+    # Runtime namespace is currently fixed to configured default.
     namespace = PINECONE_NAMESPACE
-    if chunking_strategy not in ("parent_child", "sentence_window"):
+    if chunking_strategy not in ALLOWED_CHUNKING_STRATEGIES:
         raise ValueError("chunking_strategy must be either 'parent_child' or 'sentence_window'.")
 
     # Ingestion/chunking/upsert happens in the ingest endpoint.
     # Chat pipeline starts from retrieval + generation.
     _get_or_create_index()
     logging.info(f"Starting pipeline for query '{query}' on file '{file_path}' with strategy '{chunking_strategy}'.")
-   
+
     if not is_file_ingested(source_name, namespace=namespace):
         raise ValueError(f"File '{source_name}' is not ingested. Please ingest it first.")
 
-    # Step 4: Retrieve relevant chunks from Pinecone via reranking.
+    # Retrieve relevant chunks from Pinecone via reranking.
     reranked_hits = rerank(
         query=query,
         top_k=top_k,
@@ -181,41 +192,63 @@ def run_pipeline(
         namespace=namespace,
     )
     logging.info(f"Reranking returned {len(reranked_hits)} hits for query '{query}' with strategy '{chunking_strategy}'.")
-    # Step 5: Strategy-specific context resolution from reranked hits.
+
+    # Resolve context chunks by selected chunking strategy.
     if chunking_strategy == "parent_child":
-        context_chunks: List[Dict[str, Any]] = []
-        seen_ids = set()
-        logging.info(f"Source: {source_name}")
-        for hit in reranked_hits:
-            if not _source_matches(hit.get("source", ""), source_name):
-                continue
-            if hit.get("method", "") != "parent_child":
-                continue
-            hit_id = hit.get("id", "")
-            if hit_id and hit_id in seen_ids:
-                continue
-            if hit_id:
-                seen_ids.add(hit_id)
-            context_chunks.append(
-                {
-                    "id": hit_id,
-                    "score": hit.get("score", 0),
-                    "chunk_text": hit.get("chunk_text", ""),
-                    "index": hit.get("index", ""),
-                    "level": hit.get("level", "child"),
-                    "method": "parent_child",
-                    "parent_id": hit.get("parent_id", ""),
-                    "source": hit.get("source", source_name),
-                    "page": hit.get("page", ""),
-                }
+        # Rebuild parent/child maps for the document so we can expand
+        # reranked child hits into unique parent contexts.
+        pages = extract_text(file_path)
+        parent_chunks, child_chunks = parent_child_chunking(pages=pages)
+        context_chunks = _resolve_unique_parent_chunks(
+            reranked_child_hits=reranked_hits,
+            child_chunks=child_chunks,
+            parent_chunks=parent_chunks,
+            source_name=source_name,
+        )
+        logging.info(
+            "Resolved %s unique parent chunks from %s reranked child hits.",
+            len(context_chunks),
+            len(reranked_hits),
+        )
+
+        # Safety fallback: if parent resolution fails entirely, continue with
+        # child hits rather than returning no context.
+        if not context_chunks:
+            logging.warning(
+                "No parent chunks resolved for source '%s'; falling back to child hits.",
+                source_name,
             )
+            seen_ids = set()
+            for hit in reranked_hits:
+                if not _source_matches(hit.get("source", ""), source_name):
+                    continue
+                if hit.get("method", "") != "parent_child":
+                    continue
+                hit_id = hit.get("id", "")
+                if hit_id and hit_id in seen_ids:
+                    continue
+                if hit_id:
+                    seen_ids.add(hit_id)
+                context_chunks.append(
+                    {
+                        "id": hit_id,
+                        "score": hit.get("score", 0),
+                        "chunk_text": hit.get("chunk_text", ""),
+                        "index": hit.get("index", ""),
+                        "level": hit.get("level", "child"),
+                        "method": "parent_child",
+                        "parent_id": hit.get("parent_id", ""),
+                        "source": hit.get("source", source_name),
+                        "page": hit.get("page", ""),
+                    }
+                )
     else:
         context_chunks = _resolve_sentence_window_chunks(
             reranked_hits=reranked_hits,
             source_name=source_name,
         )
 
-    # Step 6: Generation
+    # Generate final answer from resolved context chunks.
     logging.info(f"Generating answer for query '{query}' using {len(context_chunks)} context chunks with strategy '{chunking_strategy}'.")
     answer = generate_answer(query, context_chunks)
     logging.info(f"Generated answer for query '{answer}' with strategy '{chunking_strategy}'.")
@@ -229,10 +262,11 @@ def ingest_file(
     namespace: Optional[str] = None,
     source_name: Optional[str] = None,
 ) -> Tuple[int, bool]:
+    """Ingest a file: chunk, upsert vectors, and mark document as ingested."""
     pages = extract_text(file_path)
     effective_source = source_name or os.path.basename(file_path)
 
-    if chunking_strategy not in ("parent_child", "sentence_window"):
+    if chunking_strategy not in ALLOWED_CHUNKING_STRATEGIES:
         raise ValueError("chunking_strategy must be either 'parent_child' or 'sentence_window'.")
 
     _get_or_create_index()

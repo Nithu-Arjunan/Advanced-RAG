@@ -3,7 +3,7 @@ import sys
 from typing import Any
 try:
     import nltk
-except ImportError:  # pragma: no cover - depends on environment
+except ImportError:
     nltk = None
 
 # Ensure project root is importable when running this file directly.

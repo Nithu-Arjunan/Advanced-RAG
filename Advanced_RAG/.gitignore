@@ -60,6 +60,10 @@ Architecture.docx
 Front end prompt.docx
 RAG_demo.mp4
 
-Project_Architecture_Detailed_files
-
-
+Project_Architecture_Detailed_files/
+architecture.md
+architecture.py
+Project_Architecture_Detailed.doc
+advanced_rag_aws_architecture_detailed.png
+advanced_rag_aws_architecture.png
+.cursors/

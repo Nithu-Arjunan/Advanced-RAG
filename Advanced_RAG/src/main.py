@@ -1,50 +1,48 @@
+import json
 import logging
 import os
 import sys
-import json
-from pathlib import Path
 import time
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import List, Literal, Optional
 from uuid import uuid4
-from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from .pipeline import run_pipeline 
-from .pipeline import ingest_file as ingest_pipeline_file
+from .cache.embedding_cache import embed_query, hash_query, normalize_query
+from .cache.redis_backend import RedisCacheBackend
+from .config import (
+    CACHE_ENABLED,
+    EXACT_CACHE_TTL,
+    RETRIEVAL_CACHE_THRESHOLD,
+    RETRIEVAL_CACHE_TTL,
+    SEMANTIC_CACHE_THRESHOLD,
+    SEMANTIC_CACHE_TTL,
+)
+from .embedding import delete_all_vectors, delete_vectors_by_source
+from .generation import generate_answer
 from .ingestion import (
-    extract_text,
     ALLOWED_EXTENSIONS,
     UPLOAD_DIR,
     add_uploaded_document,
     ensure_data_dirs,
     list_uploaded_documents as get_uploaded_documents,
 )
-from .generation import generate_answer
-from .retrieval import search
-from .reranking import rerank
-from .base import Chunk
-from .embedding import upsert_chunks, delete_all_vectors, delete_vectors_by_source
+from .pipeline import ingest_file as ingest_pipeline_file
+from .pipeline import run_pipeline
+
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
-from .config import (
-    CACHE_ENABLED,
-    EXACT_CACHE_TTL,
-    SEMANTIC_CACHE_TTL,
-    SEMANTIC_CACHE_THRESHOLD,
-    RETRIEVAL_CACHE_TTL,
-    RETRIEVAL_CACHE_THRESHOLD,
-)
-
-from .cache.redis_backend import RedisCacheBackend
-from .cache.embedding_cache import embed_query, normalize_query, hash_query
 
 logger = logging.getLogger(__name__)
 _redis_cache_backend: RedisCacheBackend | None = None
 
+
+# ------------------- Cache Helpers -------------------
 
 def _get_cache_backend() -> RedisCacheBackend:
     """Redis-only cache backend for local testing."""
@@ -64,25 +62,26 @@ def _namespace_for_stored_file(stored_file_name: str) -> Optional[str]:
     namespace = str(latest.get("namespace", "")).strip()
     return namespace or None
 
-# -------------------App lifespan and setup------------------- 
+
+# ------------------- App Lifespan and Setup -------------------
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Startup/shutdown events."""
-    # Startup: initialize cache and clean expired entries
     if CACHE_ENABLED:
         cache = _get_cache_backend()
         removed = cache.cleanup_expired()
         if removed:
             logger.info(f"Cache startup cleanup: removed {removed} expired entries")
     yield
-    
 
-# -------------------App Initialization------------------- 
+
+# ------------------- App Initialization -------------------
+
 app = FastAPI(
     title="RAG Chatbot",
     description="RAG API using selectable chunking strategy",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -93,24 +92,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UI_DIST_DIR = Path(__file__).resolve().parents[1] / "UI" / "dist"
 
-
-
-
-
-# -------------------Request/Response Models------------------- 
-
-class IngestRequest(BaseModel):
-    file_path: str
-    strategy: Literal["parent_child", "sentence_window"] = "parent_child"
-    username: str
+# ------------------- Request/Response Models -------------------
 
 class IngestResponse(BaseModel):
     file: str
     strategy: Literal["parent_child", "sentence_window"] = "parent_child"
     chunks: int
     message: str
+
 
 class ChatRequest(BaseModel):
     query: str
@@ -123,6 +113,7 @@ class ChatRequest(BaseModel):
     chunking_strategy: Literal["parent_child", "sentence_window"] = "parent_child"
     debug: bool = False
     source: Optional[str] = None
+
 
 class SourceChunk(BaseModel):
     id: str = ""
@@ -145,19 +136,6 @@ class ChatResponse(BaseModel):
     cache_tier: Optional[str] = None
     response_time_ms: Optional[float] = None
 
-class GenerateRequest(BaseModel):
-    question: str
-    top_k: int = 10
-    top_n: int = 5
-    use_reranker: bool = True
-
-
-class GenerateResponse(BaseModel):
-    question: str
-    answer: str
-    sources: List[SourceChunk]
-    pipeline: str
-
 
 class UploadedDocument(BaseModel):
     file_name: str
@@ -169,12 +147,11 @@ class DocumentsResponse(BaseModel):
     total_documents: int
     documents: List[UploadedDocument]
 
-# ──------ Helper functions─────────────────────────────────────────────────────
-def print_chunks(chunks: list[Chunk]) -> None:
-    for c in chunks:
-        print(f"  - [{c.metadata.get('source', 'unknown')} - page {c.metadata.get('page', 'N/A')}] {c.text[:100]}...")
+
+# ------------------- Helper Functions -------------------
 
 async def _save_uploaded_file(file: UploadFile) -> Path:
+    """Validate and persist an uploaded file to disk."""
     original_name = Path(file.filename or "").name
     suffix = Path(original_name).suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
@@ -190,7 +167,7 @@ async def _save_uploaded_file(file: UploadFile) -> Path:
     return target
 
 
-def _to_source(c, idx):
+def _to_source(c):
     """Convert a chunk dict to a SourceChunk model."""
     return SourceChunk(
         id=str(c.get("id", "")),
@@ -212,12 +189,13 @@ def _json_to_sources(sources_json: str) -> List[SourceChunk]:
     """Deserialize JSON back to SourceChunk list."""
     return [SourceChunk(**s) for s in json.loads(sources_json)]
 
-#-------------API Endpoints-------------------
+
+# ------------------- API Endpoints -------------------
 
 @app.get("/health")
 def health_check():
+    """Liveness endpoint."""
     return {"status": "ok"}
-
 
 
 @app.post("/ingest", response_model=IngestResponse)
@@ -226,6 +204,7 @@ async def ingest(
     chunking_strategy: Literal["parent_child", "sentence_window"] = Form("parent_child"),
     username: str = Form(...),
 ):
+    """Upload and ingest a single document into the vector store."""
     try:
         saved_file = await _save_uploaded_file(file)
         resolved_path = str(saved_file)
@@ -257,14 +236,11 @@ async def ingest(
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-
 
 
 @app.post("/chat", response_model=ChatResponse)
-
-async def chat(req : ChatRequest):
-
+async def chat(req: ChatRequest):
+    """Run chat over ingested docs using cache tiers with a pipeline fallback."""
     try:
         if req.top_k < 1 or req.top_n < 1 or req.batch_size < 1:
             raise HTTPException(status_code=400, detail="top_k, top_n, and batch_size must be >= 1")
@@ -337,14 +313,22 @@ async def chat(req : ChatRequest):
                 )
                 cached_chunks = json.loads(retrieval_hit["chunks_json"])
                 answer = generate_answer(req.query, cached_chunks)
-                sources = [_to_source(c, i) for i, c in enumerate(cached_chunks, 1)]
+                sources = [_to_source(c) for c in cached_chunks]
 
                 # Promote to Tier 1 + 2 (we now have a full answer)
                 doc_version = cache.get_doc_version()
                 sources_json = _sources_to_json(sources)
                 if query_hash:
                     cache.set_exact(query_hash, req.query, answer, sources_json, doc_version, EXACT_CACHE_TTL)
-                cache.set_semantic(req.query, embedding, answer, sources_json, doc_version, SEMANTIC_CACHE_TTL, source_filter)
+                cache.set_semantic(
+                    req.query,
+                    embedding,
+                    answer,
+                    sources_json,
+                    doc_version,
+                    SEMANTIC_CACHE_TTL,
+                    source_filter,
+                )
 
                 return ChatResponse(
                     answer=answer,
@@ -370,7 +354,7 @@ async def chat(req : ChatRequest):
             batch_size=req.batch_size,
             namespace=resolved_namespace,
         )
-        
+
         if not chunks:
             return ChatResponse(
                 answer="I could not find any relevant information in the documents",
@@ -382,7 +366,7 @@ async def chat(req : ChatRequest):
                 response_time_ms=round((time.time() - start_time) * 1000, 2),
             )
 
-        sources = [_to_source(c, i) for i, c in enumerate(chunks, 1)]
+        sources = [_to_source(c) for c in chunks]
 
         # Store in all 3 cache tiers
         if cache:
@@ -396,8 +380,23 @@ async def chat(req : ChatRequest):
             query_hash = hash_query(normalized)
 
             cache.set_exact(query_hash, req.query, answer, sources_json, doc_version, EXACT_CACHE_TTL)
-            cache.set_semantic(req.query, embedding, answer, sources_json, doc_version, SEMANTIC_CACHE_TTL, source_filter)
-            cache.set_retrieval(req.query, embedding, json.dumps(chunks), doc_version, RETRIEVAL_CACHE_TTL, source_filter)
+            cache.set_semantic(
+                req.query,
+                embedding,
+                answer,
+                sources_json,
+                doc_version,
+                SEMANTIC_CACHE_TTL,
+                source_filter,
+            )
+            cache.set_retrieval(
+                req.query,
+                embedding,
+                json.dumps(chunks),
+                doc_version,
+                RETRIEVAL_CACHE_TTL,
+                source_filter,
+            )
 
         return ChatResponse(
             answer=answer,
@@ -406,10 +405,8 @@ async def chat(req : ChatRequest):
             file_path=str(resolved_file),
             chunk_count=chunk_count,
             contexts=sources,
-            #retrieved=None,
-            #reranked=None,
             cache_hit=False,
-            cache_tier='pipeline',
+            cache_tier="pipeline",
             response_time_ms=round((time.time() - start_time) * 1000, 2),
         )
 
@@ -418,12 +415,13 @@ async def chat(req : ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/documents", response_model=DocumentsResponse)
 def list_uploaded_documents():
+    """Return uploaded document metadata."""
     docs = get_uploaded_documents()
     documents = [UploadedDocument.model_validate(d) for d in docs]
-    return DocumentsResponse(total_documents=len(documents), documents=set(documents))
-
+    return DocumentsResponse(total_documents=len(documents), documents=documents)
 
 
 @app.delete("/documents/{filename}")
@@ -459,7 +457,7 @@ def delete_document(filename: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ── Cache Management Endpoints ─────────────────────────────────
+# ------------------- Cache Management Endpoints -------------------
 
 @app.post("/cache/clear")
 def cache_clear():
@@ -478,7 +476,7 @@ def cache_clear():
 
 @app.get("/cache/stats")
 def cache_stats():
-    """Get cache statistics — per-tier entry counts, hit counts, backend info."""
+    """Get cache statistics (entry counts, hit counts, backend info)."""
     if not CACHE_ENABLED:
         return {"message": "Cache is disabled", "stats": {}}
 
@@ -486,11 +484,11 @@ def cache_stats():
     return cache.get_stats()
 
 
-# ── Vector Store Management ───────────────────────────────────
+# ------------------- Vector Store Management -------------------
 
 @app.delete("/vectors")
 def reset_vectors():
-    """Delete all vectors from Pinecone namespace, clear cache, and remove uploaded files."""
+    """Delete all vectors, clear cache, and remove uploaded files."""
     try:
         # 1. Delete all vectors from Pinecone
         delete_all_vectors()
@@ -523,10 +521,3 @@ def reset_vectors():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-
-
-
-
-
-

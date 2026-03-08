@@ -19,3 +19,6 @@ dependencies = [
     "tiktoken>=0.12.0",
     "uvicorn>=0.41.0",
 ]
+
+[project.optional-dependencies]
+diagrams = ["diagrams>=0.23.0"]

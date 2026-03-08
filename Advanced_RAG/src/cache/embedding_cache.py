@@ -1,7 +1,7 @@
 """
 Embedding utilities for the cache system.
 
-- embed_query()        — generate embedding vector via OpenAI
+- embed_query()        — generate embedding vector via Pinecone_embed_model
 - normalize_query()    — clean/normalize query text for exact matching
 - hash_query()         — SHA256 hash of normalized text
 - cosine_similarity()  — compare two embedding vectors
@@ -14,30 +14,6 @@ import numpy as np
 from pinecone import Pinecone
 from ..config import PINECONE_API_KEY, PINECONE_EMBED_MODEL
 
-# Lazy-initialized embeddings client (created on first call)
-# _embeddings_client: OpenAIEmbeddings | None = None
-
-pc = Pinecone(api_key=PINECONE_API_KEY)
-
-# def _get_embeddings_client() -> OpenAIEmbeddings:
-#     """Get or create the OpenAI embeddings client (singleton)."""
-#     global _embeddings_client
-#     if _embeddings_client is None:
-#         _embeddings_client = OpenAIEmbeddings(
-#             model=OPENAI_EMBED_MODEL,
-#             api_key=OPENAI_API_KEY,
-#         )
-#     return _embeddings_client
-
-
-# def embed_query(text: str) -> list[float]:
-#     """Generate an embedding vector for a query string.
-
-#     Uses OpenAI text-embedding-3-small (1536 dimensions).
-#     Cost: ~$0.00002 per query — negligible.
-#     """
-#     client = _get_embeddings_client()
-#     return client.embed_query(text)
 
 _embeddings_client = None
 
