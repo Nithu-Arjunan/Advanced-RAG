@@ -8,9 +8,8 @@ Usage:
     cache.get_semantic(embedding)   # Tier 2
     cache.get_retrieval(embedding)  # Tier 3
 
-Switch backend via CACHE_BACKEND env var ("sqlite" or "redis").
 """
-print("Loading cache.__init__")
+
 
 from ..config import CACHE_BACKEND
 from .base import CacheBackend

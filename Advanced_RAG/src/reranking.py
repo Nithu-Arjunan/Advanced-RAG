@@ -106,35 +106,6 @@ def rerank(
     return hits
 
 
-def retrieve_with_parent_context(
-    child_chunk_index: int,
-    child_chunks: list[Chunk],
-    parent_chunks: list[Chunk],
-) -> tuple[Chunk, Chunk]:
-    """
-    Simulate retrieval: given a matched child chunk, return it along with its parent.
-
-    Args:
-        query_chunk_index: Index of the matched child chunk.
-        child_chunks: All child chunks.
-        parent_chunks: All parent chunks.
-
-    Returns:
-        Tuple of (matched_child, parent_context).
-    """
-    if not child_chunks:
-        raise ValueError("child_chunks is empty.")
-    if child_chunk_index < 0 or child_chunk_index >= len(child_chunks):
-        raise IndexError(f"query_chunk_index {child_chunk_index} is out of range (0 to {len(child_chunks) - 1}).")
-
-    child = child_chunks[child_chunk_index]
-    parent_id = child.metadata["parent_id"]
-    parent = next((p for p in parent_chunks if p.metadata["parent_id"] == parent_id), None)
-    if parent is None:
-        raise ValueError(f"No parent chunk found for parent_id '{parent_id}'.")
-    return child, parent
-
-
 
 #=========================== Demo ====================================
 # if __name__=="__main__":

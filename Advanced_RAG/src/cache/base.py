@@ -9,7 +9,7 @@ Swap via CACHE_BACKEND env var ("sqlite" or "redis").
 from abc import ABC, abstractmethod
 from typing import Optional
 
-print("Loading cache.base")
+
 
 class CacheBackend(ABC):
     """Interface that all cache backends must implement."""
